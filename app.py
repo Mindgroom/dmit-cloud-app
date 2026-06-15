@@ -126,7 +126,7 @@ if submitted:
             else:
                 st.error("Could not find the Excel file in OneDrive.")
         else:
-            st.error("System security override failed. Contact the administrator.")
+            st.error(f"Microsoft rejected the Master Key. Hidden Error: {result.get('error_description', result)}")
             
     except Exception as e:
         st.error(f"An error occurred: {e}")
