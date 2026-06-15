@@ -85,7 +85,7 @@ if submitted:
         'D50': [[r5_pat]], 'D51': [[r5_rc]],
     }
 
-    try:
+   try:
         app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY)
         
         # --- THE CLOUD-SAFE LOGIN METHOD ---
