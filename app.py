@@ -8,8 +8,8 @@ CLIENT_ID = '88447086-851e-4712-bf2d-0747fa713fe6'
 AUTHORITY = 'https://login.microsoftonline.com/common'
 SCOPES = ['Files.ReadWrite.All']
 
-st.set_page_config(page_title="Holistic Wellness Engine", layout="wide")
-st.title("Holistic Wellness - DMIT Cloud Generator")
+st.set_page_config(page_title="Mindgroom DMIT", layout="wide")
+st.title("Mindgroom - DMIT Report Generation")
 
 # --- 2. PATTERN MAPPING ---
 pattern_map = {
