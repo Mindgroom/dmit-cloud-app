@@ -89,6 +89,7 @@ if submitted:
         
         # --- THE CLOUD-SAFE LOGIN METHOD ---
         flow = app.initiate_device_flow(scopes=SCOPES)
+        
         if "user_code" in flow:
             # Display the login instructions on the web dashboard
             st.warning(f"🔐 **Microsoft Security Check Required:**\n1. Click this link: {flow['verification_uri']}\n2. Enter this exact code: **{flow['user_code']}**")
@@ -129,5 +130,9 @@ if submitted:
                     st.error("Could not find the Excel file in OneDrive.")
             else:
                 st.error("Authentication failed or timed out.")
+        else:
+            # THIS IS THE NEW PART: It forces the app to print Microsoft's hidden error
+            st.error(f"Microsoft blocked the login request. Hidden Error: {flow.get('error_description', flow)}")
+            
     except Exception as e:
         st.error(f"An error occurred: {e}")
