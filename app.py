@@ -4,7 +4,7 @@ import requests
 import time
 
 # --- 1. YOUR APP SETTINGS ---
-CLIENT_ID = 'd737574a-d289-45c7-acf0-d168ad30c3b5'
+CLIENT_ID = '88447086-851e-4712-bf2d-0747fa713fe6'
 AUTHORITY = 'https://login.microsoftonline.com/consumers'
 SCOPES = ['Files.ReadWrite.All']
 
