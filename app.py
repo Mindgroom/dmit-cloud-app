@@ -99,4 +99,4 @@ else:
         with colB:
             dob = st.text_input("Date of Birth", value="01-01-2010")
             mobile = st.text_input("Mobile No.", value="9876543210")
-            email = st.text_input("Email Id", value="aad
+            email = st.text_input("Email Id", value="aadya@example.com")
