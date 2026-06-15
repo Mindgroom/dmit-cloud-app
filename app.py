@@ -66,7 +66,6 @@ with st.form("client_data_form"):
     submitted = st.form_submit_button("Generate Official Report")
 
 # --- 3. THE CLOUD ENGINE CONNECTION ---
-# --- 3. THE CLOUD ENGINE CONNECTION ---
 if submitted:
     st.info("Initiating secure connection to Microsoft Cloud...")
     
@@ -85,7 +84,7 @@ if submitted:
         'D50': [[r5_pat]], 'D51': [[r5_rc]],
     }
 
-   try:
+    try:
         app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY)
         
         # --- THE CLOUD-SAFE LOGIN METHOD ---
