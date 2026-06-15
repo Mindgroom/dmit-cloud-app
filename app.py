@@ -135,47 +135,27 @@ else:
 
         submitted = st.form_submit_button("Generate Report (Deducts 1 Credit)")
 
-    # --- 6. CLOUD ENGINE & LEDGER UPDATE ---
+   # --- 6. CLOUD ENGINE & LEDGER UPDATE ---
     if submitted:
-        target_excel_file = file_router[selected_stream]
-        st.info(f"Connecting to Master Vault... Targeting: {target_excel_file}")
+        st.info(f"Connecting to Master Vault... Initiating secure session.")
         
-        # Reformatted to short lines to prevent copy-paste truncation
+        # Data mapping remains the same
         client_data = {
-            'E1': [[date_of_analysis]], 
-            'D5': [[client_name]], 
-            'D7': [[gender]], 
-            'D9': [[dob]], 
-            'D11': [[mobile]], 
-            'D13': [[email]], 
-            'D15': [[address]],
-            'D17': [[parent_name]], 
-            'D19': [[remarks]], 
-            'D21': [[analyst_id]],
-            'D23': [[franchise_name]], 
-            'D25': [[franchise_company]], 
-            'D27': [[franchise_contact]], 
-            'D29': [[franchise_address]],
-            'D32': [[finger_data["Left Thumb (L1)"]["pattern"]]], 
-            'D33': [[finger_data["Left Thumb (L1)"]["rc"]]],
-            'D34': [[finger_data["Left Index (L2)"]["pattern"]]], 
-            'D35': [[finger_data["Left Index (L2)"]["rc"]]],
-            'D36': [[finger_data["Left Middle (L3)"]["pattern"]]], 
-            'D37': [[finger_data["Left Middle (L3)"]["rc"]]],
-            'D38': [[finger_data["Left Ring (L4)"]["pattern"]]], 
-            'D39': [[finger_data["Left Ring (L4)"]["rc"]]],
-            'D40': [[finger_data["Left Little (L5)"]["pattern"]]], 
-            'D41': [[finger_data["Left Little (L5)"]["rc"]]],
-            'D42': [[finger_data["Right Thumb (L6)"]["pattern"]]], 
-            'D43': [[finger_data["Right Thumb (L6)"]["rc"]]],
-            'D44': [[finger_data["Right Index (L7)"]["pattern"]]], 
-            'D45': [[finger_data["Right Index (L7)"]["rc"]]],
-            'D46': [[finger_data["Right Middle (L8)"]["pattern"]]], 
-            'D47': [[finger_data["Right Middle (L8)"]["rc"]]],
-            'D48': [[finger_data["Right Ring (L9)"]["pattern"]]], 
-            'D49': [[finger_data["Right Ring (L9)"]["rc"]]],
-            'D50': [[finger_data["Right Little (L10)"]["pattern"]]], 
-            'D51': [[finger_data["Right Little (L10)"]["rc"]]],
+            'E1': [[date_of_analysis]], 'D5': [[client_name]], 'D7': [[gender]], 
+            'D9': [[dob]], 'D11': [[mobile]], 'D13': [[email]], 'D15': [[address]],
+            'D17': [[parent_name]], 'D19': [[remarks]], 'D21': [[analyst_id]],
+            'D23': [[franchise_name]], 'D25': [[franchise_company]], 
+            'D27': [[franchise_contact]], 'D29': [[franchise_address]],
+            'D32': [[finger_data["Left Thumb (L1)"]["pattern"]]], 'D33': [[finger_data["Left Thumb (L1)"]["rc"]]],
+            'D34': [[finger_data["Left Index (L2)"]["pattern"]]], 'D35': [[finger_data["Left Index (L2)"]["rc"]]],
+            'D36': [[finger_data["Left Middle (L3)"]["pattern"]]], 'D37': [[finger_data["Left Middle (L3)"]["rc"]]],
+            'D38': [[finger_data["Left Ring (L4)"]["pattern"]]], 'D39': [[finger_data["Left Ring (L4)"]["rc"]]],
+            'D40': [[finger_data["Left Little (L5)"]["pattern"]]], 'D41': [[finger_data["Left Little (L5)"]["rc"]]],
+            'D42': [[finger_data["Right Thumb (L6)"]["pattern"]]], 'D43': [[finger_data["Right Thumb (L6)"]["rc"]]],
+            'D44': [[finger_data["Right Index (L7)"]["pattern"]]], 'D45': [[finger_data["Right Index (L7)"]["rc"]]],
+            'D46': [[finger_data["Right Middle (L8)"]["pattern"]]], 'D47': [[finger_data["Right Middle (L8)"]["rc"]]],
+            'D48': [[finger_data["Right Ring (L9)"]["pattern"]]], 'D49': [[finger_data["Right Ring (L9)"]["rc"]]],
+            'D50': [[finger_data["Right Little (L10)"]["pattern"]]], 'D51': [[finger_data["Right Little (L10)"]["rc"]]],
         }
 
         try:
@@ -187,53 +167,75 @@ else:
                 search_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children'
                 response = requests.get(search_url, headers=headers).json()
                 
-                file_id = next((f['id'] for f in response.get('value', []) if f['name'] == target_excel_file), None)
+                # Find the Master File
+                master_file_id = next((f['id'] for f in response.get('value', []) if f['name'] == TARGET_EXCEL_FILE), None)
 
-                if file_id:
-                    # --- LIVE PROGRESS BAR ---
-                    st.write("---")
-                    progress_text = "Encrypting and injecting data into Excel... Please wait."
-                    my_bar = st.progress(0, text=progress_text)
+                if master_file_id:
+                    # --- 1. CLONE THE MASTER FILE ---
+                    progress_text = "Creating secure temporary processing environment..."
+                    my_bar = st.progress(10, text=progress_text)
                     
-                    total_cells = len(client_data)
-                    for i, (cell, value) in enumerate(client_data.items()):
-                        requests.patch(f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/workbook/worksheets('Input')/range(address='{cell}')", 
-                                       headers=headers, json={"values": value})
+                    # Download the master file into memory
+                    master_content = requests.get(f"https://graph.microsoft.com/v1.0/me/drive/items/{master_file_id}/content", headers=headers).content
+                    
+                    # Upload it back as a temporary file with a unique timestamp name
+                    temp_filename = f"Temp_Report_{int(time.time())}.xlsx"
+                    upload_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{temp_filename}:/content"
+                    temp_upload_res = requests.put(upload_url, headers=headers, data=master_content)
+                    temp_file_id = temp_upload_res.json().get('id')
+                    
+                    if not temp_file_id:
+                        st.error("Failed to create temporary processing file.")
+                        st.stop()
+
+                    # We use a try/finally block to guarantee the temp file gets deleted even if the app crashes mid-generation
+                    try:
+                        # --- 2. INJECT DATA INTO THE TEMP FILE ---
+                        total_cells = len(client_data)
+                        for i, (cell, value) in enumerate(client_data.items()):
+                            requests.patch(f"https://graph.microsoft.com/v1.0/me/drive/items/{temp_file_id}/workbook/worksheets('Input')/range(address='{cell}')", 
+                                           headers=headers, json={"values": value})
+                            
+                            percent_complete = int(((i + 1) / total_cells) * 100)
+                            my_bar.progress(percent_complete, text=f"Encrypting Cell {cell}... ({percent_complete}%)")
                         
-                        percent_complete = int(((i + 1) / total_cells) * 100)
-                        my_bar.progress(percent_complete, text=f"Injected Cell {cell}... ({percent_complete}%)")
-                    
-                    st.info(f"Injection complete! Processing PDF Layout... (Takes about 5 seconds)")
-                    time.sleep(5) 
-                    pdf_response = requests.get(f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content?format=pdf", headers=headers)
-                    
-                    if pdf_response.status_code == 200:
-                        st.download_button("Download PDF Report", data=pdf_response.content, file_name=f"{client_name.replace(' ', '_')}_{selected_stream.replace(' ', '_')}_Report.pdf", mime="application/pdf")
+                        # --- 3. GENERATE PDF FROM TEMP FILE ---
+                        st.info(f"Injection complete! Crunching formulas and generating PDF...")
+                        time.sleep(5) 
+                        pdf_response = requests.get(f"https://graph.microsoft.com/v1.0/me/drive/items/{temp_file_id}/content?format=pdf", headers=headers)
                         
-                        # --- DATABASE UPDATE: DEDUCT CREDIT & LOG ---
-                        try:
-                            gc = get_gspread_client()
-                            sh = gc.open("Mindgroom_DB")
+                        if pdf_response.status_code == 200:
+                            st.download_button("Download PDF Report", data=pdf_response.content, file_name=f"{client_name.replace(' ', '_')}_Report.pdf", mime="application/pdf")
                             
-                            # 1. Deduct the credit
-                            ws_credits = sh.worksheet("Franchise_Credits")
-                            cell_user = ws_credits.find(st.session_state.access_code)
-                            new_credit_val = st.session_state.credits - 1
-                            ws_credits.update_cell(cell_user.row, 3, new_credit_val)
+                            # --- 4. UPDATE GOOGLE SHEETS LEDGER ---
+                            try:
+                                gc = get_gspread_client()
+                                sh = gc.open("Magnum_DB")
+                                
+                                ws_credits = sh.worksheet("Franchise_Credits")
+                                cell_user = ws_credits.find(st.session_state.access_code)
+                                new_credit_val = st.session_state.credits - 1
+                                ws_credits.update_cell(cell_user.row, 3, new_credit_val)
+                                
+                                st.session_state.credits = new_credit_val 
+                                
+                                ws_logs = sh.worksheet("Report_Logs")
+                                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                ws_logs.append_row([current_time, st.session_state.access_code, st.session_state.franchise_name, client_name, "Standard Report"])
+                                
+                                st.success(f"Report generated successfully! 1 Credit deducted. Remaining balance: {st.session_state.credits}")
+                            except Exception as db_err:
+                                st.warning(f"Report generated, but there was an error updating the ledger: {db_err}")
+                        else:
+                            st.error("Microsoft Cloud failed to convert the file to PDF.")
                             
-                            # Update the UI session state
-                            st.session_state.credits = new_credit_val 
-                            
-                            # 2. Write the log
-                            ws_logs = sh.worksheet("Report_Logs")
-                            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            ws_logs.append_row([current_time, st.session_state.access_code, st.session_state.franchise_name, client_name, selected_stream])
-                            
-                            st.success(f"Report generated successfully! 1 Credit deducted. Remaining balance: {st.session_state.credits}")
-                        except Exception as db_err:
-                            st.warning(f"Report generated, but there was an error updating the ledger: {db_err}")
+                    finally:
+                        # --- 5. THE DESTROY PHASE ---
+                        # This code ALWAYS runs, safely deleting the temporary file from your OneDrive
+                        requests.delete(f"https://graph.microsoft.com/v1.0/me/drive/items/{temp_file_id}", headers=headers)
+                        
                 else:
-                    st.error(f"Could not find '{target_excel_file}' in your OneDrive.")
+                    st.error(f"Could not find '{TARGET_EXCEL_FILE}' in your OneDrive. Did you upload and name it correctly?")
             else:
                 st.error("Microsoft cloud override failed.")
         except Exception as e:
