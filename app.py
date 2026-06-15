@@ -9,7 +9,7 @@ AUTHORITY = 'https://login.microsoftonline.com/common'
 SCOPES = ['Files.ReadWrite.All']
 
 st.set_page_config(page_title="Mindgroom DMIT", layout="wide")
-st.title("Mindgroom - DMIT Report Generation")
+st.title("Mindgroom - DMIT Analysis System")
 
 # --- 2. PATTERN MAPPING ---
 pattern_map = {
@@ -37,6 +37,15 @@ with st.form("client_data_form"):
         email = st.text_input("Email", value="aadya@example.com")
         address = st.text_input("Address", value="New Delhi, India")
         
+    st.write("---")
+    st.subheader("ATD Angles")
+    col_atd1, col_atd2 = st.columns(2)
+    with col_atd1:
+        atd_left = st.number_input("ATD Angle Left", value=42)
+    with col_atd2:
+        atd_right = st.number_input("ATD Angle Right", value=41)
+        
+    st.write("---")
     st.subheader("Assign Fingerprint Patterns & RC Values")
     finger_labels = [
         "Left Thumb", "Left Index", "Left Middle", "Left Ring", "Left Little",
@@ -62,6 +71,7 @@ if submitted:
     client_data = {
         'D5': [[client_name]], 'D7': [[parent_name]], 'D9': [[dob]], 
         'D11': [[mobile]], 'D13': [[email]], 'D15': [[address]], 
+        'D19': [[atd_left]], 'D21': [[atd_right]],
         'D32': [[finger_data["Left Thumb"]["pattern"]]], 'D33': [[finger_data["Left Thumb"]["rc"]]],
         'D34': [[finger_data["Left Index"]["pattern"]]], 'D35': [[finger_data["Left Index"]["rc"]]],
         'D36': [[finger_data["Left Middle"]["pattern"]]], 'D37': [[finger_data["Left Middle"]["rc"]]],
@@ -92,7 +102,7 @@ if submitted:
                 st.info("Processing layout...")
                 time.sleep(5) 
                 pdf = requests.get(f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content?format=pdf", headers=headers)
-                st.download_button("Download PDF Report", data=pdf.content, file_name="Report.pdf", mime="application/pdf")
+                st.download_button("Download PDF Report", data=pdf.content, file_name=f"{client_name.replace(' ', '_')}_Report.pdf", mime="application/pdf")
             else:
                 st.error("Excel file not found.")
         else:
