@@ -84,55 +84,49 @@ if submitted:
         'D50': [[r5_pat]], 'D51': [[r5_rc]],
     }
 
-    try:
+   try:
         app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY)
         
-        # --- THE CLOUD-SAFE LOGIN METHOD ---
-        flow = app.initiate_device_flow(scopes=SCOPES)
+        # Pull the hidden Master Key from Streamlit's secret vault
+        refresh_token = st.secrets["MS_REFRESH_TOKEN"]
         
-        if "user_code" in flow:
-            # Display the login instructions on the web dashboard
-            st.warning(f"🔐 **Microsoft Security Check Required:**\n1. Click this link: {flow['verification_uri']}\n2. Enter this exact code: **{flow['user_code']}**")
+        st.info("Silently connecting to the secure vault...")
+        # Trade the Master Key for temporary access behind the scenes
+        result = app.acquire_token_by_refresh_token(refresh_token, scopes=SCOPES)
+        
+        if "access_token" in result:
+            headers = {'Authorization': 'Bearer ' + result['access_token'], 'Content-Type': 'application/json'}
             
-            # The app will pause here and wait for you to type the code on Microsoft's website
-            result = app.acquire_token_by_device_flow(flow)
-            
-            if "access_token" in result:
-                headers = {'Authorization': 'Bearer ' + result['access_token'], 'Content-Type': 'application/json'}
-                
-                st.info("Injecting client data into the proprietary algorithm...")
-                search_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children'
-                response = requests.get(search_url, headers=headers).json()
-                file_id = next((f['id'] for f in response.get('value', []) if f['name'] == 'Rini Holistic Wellness.xlsx'), None)
+            st.info("Injecting client data into the proprietary algorithm...")
+            search_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children'
+            response = requests.get(search_url, headers=headers).json()
+            file_id = next((f['id'] for f in response.get('value', []) if f['name'] == 'Rini Holistic Wellness.xlsx'), None)
 
-                if file_id:
-                    for cell, value in client_data.items():
-                        update_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/workbook/worksheets('Input')/range(address='{cell}')"
-                        requests.patch(update_url, headers=headers, json={"values": value})
-                    
-                    st.info("Processing 66-page layout... (This takes a few seconds)")
-                    time.sleep(5) 
-                    
-                    pdf_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content?format=pdf"
-                    pdf_response = requests.get(pdf_url, headers=headers)
-                    
-                    if pdf_response.status_code == 200:
-                        st.success("Report generation complete!")
-                        st.download_button(
-                            label="Download PDF Report",
-                            data=pdf_response.content,
-                            file_name=f"{client_name.replace(' ', '_')}_Report.pdf",
-                            mime="application/pdf"
-                        )
-                    else:
-                        st.error("Failed to convert the file to PDF. Please try again.")
+            if file_id:
+                for cell, value in client_data.items():
+                    update_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/workbook/worksheets('Input')/range(address='{cell}')"
+                    requests.patch(update_url, headers=headers, json={"values": value})
+                
+                st.info("Processing 66-page layout... (This takes a few seconds)")
+                time.sleep(5) 
+                
+                pdf_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content?format=pdf"
+                pdf_response = requests.get(pdf_url, headers=headers)
+                
+                if pdf_response.status_code == 200:
+                    st.success("Report generation complete!")
+                    st.download_button(
+                        label="Download PDF Report",
+                        data=pdf_response.content,
+                        file_name=f"{client_name.replace(' ', '_')}_Report.pdf",
+                        mime="application/pdf"
+                    )
                 else:
-                    st.error("Could not find the Excel file in OneDrive.")
+                    st.error("Failed to convert the file to PDF. Please try again.")
             else:
-                st.error("Authentication failed or timed out.")
+                st.error("Could not find the Excel file in OneDrive.")
         else:
-            # THIS IS THE NEW PART: It forces the app to print Microsoft's hidden error
-            st.error(f"Microsoft blocked the login request. Hidden Error: {flow.get('error_description', flow)}")
+            st.error("System security override failed. Contact the administrator.")
             
     except Exception as e:
         st.error(f"An error occurred: {e}")
